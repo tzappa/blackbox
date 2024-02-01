@@ -16,12 +16,30 @@ final class BlackBox
     const HIT = '🟥';     // Hit
     const REFLECT = '🟨'; // Reflection
 
+    static function create(int $size, int $balls): string
+    {
+        $game = new BlackBox();
+        $board = $game->createPlayingBoard($size);
+        $board = $game->addRandomBalls($board, $balls);
+        try {
+            $board = $game->sendLaserBeams($board);
+        } catch (\Exception $e) {
+            return self::create($size, $balls);
+        }
+
+        return $game->toString($board);
+    }
+
     public function toString(array $board): string
     {
         $str = '';
         foreach ($board as $row) {
             foreach ($row as $cell) {
-                $str .= $cell;
+                if (is_int($cell)) {
+                    $str .= str_pad((string) $cell, 2, ' ', STR_PAD_LEFT);
+                } else {
+                    $str .= $cell;
+                }
             }
             $str .= PHP_EOL;
         }
@@ -87,165 +105,132 @@ final class BlackBox
     {
         $size = count($board) - 2;
 
-        try {
-            // start a laser beam from each side
-            for ($r = 1; $r <= $size; $r++) {
-                if ($board[0][$r] == self::PORT) {
-                    $board = $this->go($board, 0, $r, 1, 0);
-                }
-                if ($board[$r][0] == self::PORT) {
-                    $board = $this->go($board, $r, 0, 0, 1);
-                }
-                if ($board[$size + 1][$r] == self::PORT) {
-                    $board = $this->go($board, $size + 1, $r, -1, 0);
-                }
-                if ($board[$r][$size + 1] == self::PORT) {
-                    $board = $this->go($board, $r, $size + 1, 0, -1);
-                }
+        // start a laser beam from each side
+        for ($i = 1; $i <= $size; $i++) {
+            if ($board[0][$i] == self::PORT) {
+                $board = $this->shoot($board, 0, $i, 1, 0);
             }
-        } catch (\Exception $e) { // On Infinite loop
-            // recreate the board and try again
-            return $this->createPlayingBoard($size, $this->countBalls($board));
+            if ($board[$i][0] == self::PORT) {
+                $board = $this->shoot($board, $i, 0, 0, 1);
+            }
+            if ($board[$size + 1][$i] == self::PORT) {
+                $board = $this->shoot($board, $size + 1, $i, -1, 0);
+            }
+            if ($board[$i][$size + 1] == self::PORT) {
+                $board = $this->shoot($board, $i, $size + 1, 0, -1);
+            }
         }
 
         return $board;
     }
 
-    /**
-     * @param array $board - Playing board
-     * @param integer $row - Starting position (row) of the laser beam
-     * @param integer $col - Starting position (column) of the laser beam
-     * @param integer $dr - verticcal direction (row) of the laser beam 1 = down, -1 = up
-     * @param integer $dc - horizontal direction (column) of the laser beam 1 = right, -1 = left
-     */
-    private function go(array $board, int $row, int $col, int $dr, int $dc)
+    private function shoot(array $board, int $row, int $col, int $dr, int $dc): array
     {
         static $num = 0; // The deflection number
 
-        $res = false;
+        // check for imidiate hit
+        if ($board[$row + $dr][$col + $dc] == self::BALL) {
+            $board[$row][$col] = self::HIT;
+            return $board;
+        }
+        // check imidiate reflection
+        if ($dr == 0) {
+            // horizontal
+            if (($board[$row + 1][$col + $dc] == self::BALL) || ($board[$row - 1][$col + $dc] == self::BALL)) {
+                $board[$row][$col] = self::REFLECT;
+                return $board;
+            }
+        } else {
+            // vertical
+            if (($board[$row + $dr][$col + 1] == self::BALL) || ($board[$row + $dr][$col - 1] == self::BALL)) {
+                $board[$row][$col] = self::REFLECT;
+                return $board;
+            }
+        }
+
+        // move the laser beam
         $r = $row; // current row
         $c = $col; // current column
         $size = count($board) - 2;
+        $itterations = 0;
+        while (++$itterations < 100) {
+            $r = $r + $dr; // current row
+            $c = $c + $dc; // current column
 
-        $itt = 0;
-        while ($res === false) {
-            $itt++;
-            // Exit
-            if (($r + $dr <= 0) || ($r + $dr >= $size + 1) || ($c + $dc <= 0) || ($c + $dc >= $size + 1)) {
-                // From the same point
-                if (($r + $dr == $row) && ($c + $dc == $col)) {
-                    $res = self::REFLECT;
-                } elseif (($itt > 1) && ($r == $row) && ($c == $col)) {
-                    $res = self::REFLECT;
-                } else {
-                    // from somewhere else
-                    $num = $num + 1;
-                    $res = str_pad((string) $num, 2, '*', STR_PAD_LEFT);
-                    if (@$board[$r + $dr][$c + $dc] == self::PORT) {
-                        $board[$r + $dr][$c + $dc] = $res;
-                    }
-                }
-            } elseif (@$board[$r + $dr][$c + $dc] == self::BALL) {
-                // Hit
-                $res = self::HIT;
-            } elseif (($dr == 1) || ($dr == -1)) {
-                // Deflection - Change direction
-                // Vertical
-                // from both sides
-                if ((@$board[$r + $dr][$c - 1] == self::BALL) && (@$board[$r + $dr][$c + 1] == self::BALL)) {
-                    if (($r == 0) || ($r == $size + 1)) {
-                        $res = self::REFLECT;
-                    } else {
-                        // go back
-                        $dr = -1 * $dr;
-                    }
-                } elseif (@$board[$r + $dr][$c - 1] == self::BALL) {
-                    // ball from left
-                    if (($r == 0) || ($r == $size + 1)) {
-                        $res = self::REFLECT;
-                    } else {
-                        // change direction to right
-                        $dr = 0;
-                        $dc = 1;
-                    }
-                } elseif (@$board[$r + $dr][$c + 1] == self::BALL) {
-                    // ball from left
-                    if (($r == 0) || ($r == $size + 1)) {
-                        $res = self::REFLECT;
-                    } else {
-                        // change direction to right
-                        $dr = 0;
-                        $dc = -1;
-                    }
-                }
-            } elseif (($dc == 1) || ($dc == -1)) {
-                // Horizontal
-                // from both sides
-                if ((@$board[$r - 1][$c + $dc] == self::BALL) && (@$board[$r + 1][$c + $dc] == self::BALL)) {
-                    if (($c == 0) || ($c == $size + 1)) {
-                        $res = self::REFLECT;
-                    } else {
-                        // go back
-                        $dc = -1 * $dc;
-                    }
-                } elseif (@$board[$r + 1][$c + $dc] == self::BALL) {
-                    // ball from left
-                    if (($c == 0) || ($c == $size + 1)) {
-                        $res = self::REFLECT;
-                    } else {
-                        // change direction to up
-                        $dc = 0;
-                        $dr = -1;
-                    }
-                } elseif (@$board[$r - 1][$c + $dc] == self::BALL) {
-                    // ball from right
-                    if (($c == 0) || ($c == $size + 1)) {
-                        $res = self::REFLECT;
-                    } else {
-                        // change direction to down
-                        $dc = 0;
-                        $dr = 1;
-                    }
-                }
-            } elseif ($itt > 100) {
-                throw new \Exception('too many iterations');
+            if (($c < 0) || ($r < 0) || ($c > $size + 1) || ($r > $size + 1)) {
+                echo 'Out of bounds';
+                // return $board;
             }
-            if ($res) {
-                $board[$row][$col] = $res;
-                if (($r + $dr < 0) || ($c + $dc < 0) || ($r + $dr > $size + 1) || ($c + $dc > $size + 1)) {
-                    if (($row != $r + $dr) && ($col != $c + $dc)) {
-                        $board[$r][$c] = $res;
-                    }
+
+            // check for hit
+            if ($board[$r][$c] == self::BALL) {
+                $board[$row][$col] = self::HIT;
+                return $board;
+            }
+
+            // check for exit
+            if (($r == 0) || ($c == 0) || ($r == $size + 1) || ($c == $size + 1)) {
+                // check the port is the same as the starting point
+                if (($r == $row) && ($c == $col)) {
+                    $board[$row][$col] = self::REFLECT;
+                    return $board;
+                } else {
+                    $num = $num + 1;
+                    $board[$row][$col] = $num;
+                    $board[$r][$c] = $num;
+                    return $board;
+                }
+                return $board;
+            }
+
+            // check for reflection by 2 balls
+            if ($dr == 0) {
+                // horizontal
+                if (($board[$r + 1][$c] == self::BALL) && ($board[$r - 1][$c] == self::BALL)) {
+                    $board[$row][$col] = self::REFLECT;
+                    return $board;
                 }
             } else {
-                $c = $c + $dc;
-                $r = $r + $dr;
+                // vertical
+                if (($board[$r][$c + 1] == self::BALL) && ($board[$r][$c - 1] == self::BALL)) {
+                    $board[$row][$col] = self::REFLECT;
+                    return $board;
+                }
             }
-        }
-        return $board;
-    }
 
-    public function countBalls(array $board): int
-    {
-        $balls = 0;
-        foreach ($board as $row) {
-            foreach ($row as $cell) {
-                if ($cell == self::BALL) {
-                    $balls++;
+            // check for reflection by 1 ball
+            if ($dr == 0) {
+                // horizontal
+                if ($board[$r + 1][$c] == self::BALL) {
+                    $dr = -1;
+                    $c = $c - $dc;
+                    $dc = 0;
+                } elseif ($board[$r - 1][$c] == self::BALL) {
+                    $dr = 1;
+                    $c = $c - $dc;
+                    $dc = 0;
+                }
+            } else {
+                // vertical
+                if ($board[$r][$c + 1] == self::BALL) {
+                    $r = $r - $dr;
+                    $dr = 0;
+                    $dc = -1;
+                } elseif ($board[$r][$c - 1] == self::BALL) {
+                    $r = $r - $dr;
+                    $dr = 0;
+                    $dc = 1;
                 }
             }
         }
 
-        return $balls;
+        throw new \Exception('Too many itterations');
     }
 }
 
 if (php_sapi_name() == 'cli') {
-    $size = (int) ($argv[1] ?? 5);
+    $size = (int) ($argv[1] ?? 6);
     $balls = (int) ($argv[2] ?? 3);
-    $game = new BlackBox();
-    $board = $game->createPlayingBoard($size);
-    $board = $game->addRandomBalls($board, $balls);
-    $board = $game->sendLaserBeams($board);
-    echo $game->toString($board);
+    $game = BlackBox::create($size, $balls);
+    echo $game;
 }
