@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 /**
- * Black Box Game
- *
+ * Black Box game generator
  * @see https://en.wikipedia.org/wiki/Black_Box_(game)
  *
  * @author Plamen Popov <tzappa [at] gmail.com>
  * @license GPL v3
+ * @source https://github.com/tzappa/blackbox
  */
 
 namespace BlackBox;
@@ -178,24 +178,13 @@ final class BlackBox
                 return $board;
             }
 
-            // check for reflection by 2 balls
+            // check for reflection by 1 or 2 ball(s)
             if ($dr == 0) {
                 // horizontal
                 if (($board[$r + 1][$c] == self::BALL) && ($board[$r - 1][$c] == self::BALL)) {
                     $board[$row][$col] = self::REFLECT;
                     return $board;
                 }
-            } else {
-                // vertical
-                if (($board[$r][$c + 1] == self::BALL) && ($board[$r][$c - 1] == self::BALL)) {
-                    $board[$row][$col] = self::REFLECT;
-                    return $board;
-                }
-            }
-
-            // check for reflection by 1 ball
-            if ($dr == 0) {
-                // horizontal
                 if ($board[$r + 1][$c] == self::BALL) {
                     $dr = -1;
                     $c = $c - $dc;
@@ -207,6 +196,10 @@ final class BlackBox
                 }
             } else {
                 // vertical
+                if (($board[$r][$c + 1] == self::BALL) && ($board[$r][$c - 1] == self::BALL)) {
+                    $board[$row][$col] = self::REFLECT;
+                    return $board;
+                }
                 if ($board[$r][$c + 1] == self::BALL) {
                     $r = $r - $dr;
                     $dr = 0;
