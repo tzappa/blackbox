@@ -11,7 +11,6 @@
 namespace BlackBox;
 
 use InvalidArgumentException;
-use Exception;
 
 final class BlackBox
 {
@@ -27,11 +26,7 @@ final class BlackBox
         $game = new BlackBox();
         $board = $game->createPlayingBoard($size);
         $board = $game->addRandomBalls($board, $balls);
-        try {
-            $board = $game->sendLaserBeams($board);
-        } catch (Exception $e) {
-            return self::create($size, $balls);
-        }
+        $board = $game->sendLaserBeams($board);
 
         return $game->toString($board);
     }
@@ -158,15 +153,9 @@ final class BlackBox
         $r = $row; // current row
         $c = $col; // current column
         $size = count($board) - 2;
-        $itterations = 0;
-        while (++$itterations < 100) {
+        while (true) {
             $r = $r + $dr; // current row
             $c = $c + $dc; // current column
-
-            if (($c < 0) || ($r < 0) || ($c > $size + 1) || ($r > $size + 1)) {
-                echo 'Out of bounds';
-                // return $board;
-            }
 
             // check for hit
             if ($board[$r][$c] == self::BALL) {
@@ -229,8 +218,6 @@ final class BlackBox
                 }
             }
         }
-
-        throw new Exception('Too many itterations');
     }
 }
 
