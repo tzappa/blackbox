@@ -1,16 +1,22 @@
 <?php declare(strict_types=1);
 /**
- * BlackBox
+ * Black Box Game
+ *
+ * @see https://en.wikipedia.org/wiki/Black_Box_(game)
+ *
+ * @author Plamen Popov <tzappa [at] gmail.com>
+ * @license GPL v3
  */
 
 namespace BlackBox;
 
 use InvalidArgumentException;
+use Exception;
 
 final class BlackBox
 {
-    const BALL = '🟡';    // Hidden ball 🟡 ⭕ ● ⚫ 🎱
-    const EMPTY = '⬛';   // Black box ☐ □ ▢ ■ ⚫ ⬜ ⬛
+    const BALL = '🟡';    // Hidden ball
+    const EMPTY = '⬛';   // Black box
     const PORT = '⬜';    // Entry port for laser beam
     const CORNER = '  ';  // Corner of the board ❎ ⬛
     const HIT = '🟥';     // Hit
@@ -23,7 +29,7 @@ final class BlackBox
         $board = $game->addRandomBalls($board, $balls);
         try {
             $board = $game->sendLaserBeams($board);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return self::create($size, $balls);
         }
 
@@ -224,13 +230,12 @@ final class BlackBox
             }
         }
 
-        throw new \Exception('Too many itterations');
+        throw new Exception('Too many itterations');
     }
 }
 
 if (php_sapi_name() == 'cli') {
     $size = (int) ($argv[1] ?? 6);
     $balls = (int) ($argv[2] ?? 3);
-    $game = BlackBox::create($size, $balls);
-    echo $game;
+    echo BlackBox::create($size, $balls);
 }
