@@ -14,32 +14,45 @@ use InvalidArgumentException;
 
 final class BlackBox
 {
-    const BALL = '🟡';    // Hidden ball
-    const EMPTY = '⬛';   // Black box
-    const PORT = '⬜';    // Entry port for laser beam
-    const CORNER = '  ';  // Corner of the board ❎ ⬛
-    const HIT = '🟥';     // Hit
-    const REFLECT = '🟨'; // Reflection
+    const BALL = 'b';    // Hidden ball
+    const EMPTY = 'O';   // Black box
+    const PORT = 'P';    // Entry port for laser beam
+    const CORNER = '';   // Corner of the board
+    const HIT = 'H';     // Hit
+    const REFLECT = 'R'; // Reflection
 
-    static function create(int $size, int $balls): string
+    private array $board;
+
+    public function __construct(int $size = 6, int $balls = 3)
     {
-        $game = new BlackBox();
-        $board = $game->createPlayingBoard($size);
-        $board = $game->addRandomBalls($board, $balls);
-        $board = $game->sendLaserBeams($board);
-
-        return $game->toString($board);
+        $board = $this->createPlayingBoard($size);
+        $board = $this->addRandomBalls($board, $balls);
+        $board = $this->sendLaserBeams($board);
+        $this->board = $board;
     }
 
-    public function toString(array $board): string
+    public function getBoard(): array
     {
+        return $this->board;
+    }
+
+    public function __toString(): string
+    {
+        $conv = [
+            self::BALL => '🟡',
+            self::EMPTY => '⬛',
+            self::PORT => '⬜',
+            self::CORNER => '  ', //  ❎ ⬛
+            self::HIT => '🟥',
+            self::REFLECT => '🟨',
+        ];
         $str = '';
-        foreach ($board as $row) {
+        foreach ($this->board as $row) {
             foreach ($row as $cell) {
                 if (is_int($cell)) {
                     $str .= str_pad((string) $cell, 2, ' ', STR_PAD_LEFT);
                 } else {
-                    $str .= $cell;
+                    $str .= $conv[$cell];
                 }
             }
             $str .= PHP_EOL;
@@ -217,5 +230,6 @@ final class BlackBox
 if (php_sapi_name() == 'cli') {
     $size = (int) ($argv[1] ?? 6);
     $balls = (int) ($argv[2] ?? 3);
-    echo BlackBox::create($size, $balls);
+    $bb = new BlackBox($size, $balls);
+    echo $bb;
 }
