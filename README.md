@@ -3,6 +3,19 @@
 You can try generation of a board in CLI by running:
 > php BlackBox.php
 
+<pre><code>
+   1 4 2🟥 3 6
+ 2⬛⬛⬛⬛⬛⬛ 3
+🟥⬛⬛⬛🟡⬛⬛ 6
+ 4⬛⬛⬛⬛🟡⬛🟥
+🟥⬛⬛🟡⬛⬛⬛ 7
+ 5⬛⬛⬛⬛⬛⬛ 7
+🟥⬛⬛⬛⬛🟡⬛🟥
+   1 5🟥🟨🟥🟨
+</code></pre>
+
+
+
 or specifiy the size of the board and number of balls (atoms):
 > php BlackBox.php 10 6
 
