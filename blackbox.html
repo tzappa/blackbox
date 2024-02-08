@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Black Box Game</title>
+<style>
+body {
+	font-family: Arial, sans-serif;
+	background-color: #f0f0f0;
+	margin: 0;
+	padding: 0;
+}
+h1 {
+	text-align: center;
+}
+#game {
+	margin: 20px auto;
+	text-align: center;
+	width: fit-content;
+}
+#game table {
+	border-collapse: collapse;
+}
+#game td {
+	font-size: 32px;
+	width: 40px;
+	height: 40px;
+	text-align: center;
+}
+#game .corner {
+	background-color: transparent;
+}
+#game .port {
+	background-color: #fff;
+	cursor: pointer;
+	border: 1px solid #000;
+}
+#game .port:hover {
+	background-color: #eee;
+}
+#game .port.hit {
+	background-color: #f00;
+	cursor: default;
+}
+#game .port.ref {
+	background-color: #ff0;
+	cursor: default;
+}
+#game .empty {
+	background-color: #000;
+	border: 1px solid #fff;
+}
+#game .empty.guess {
+	background-color: #00f;
+}
+#game .empty.guess.found {
+	background-color: green;
+}
+#game .empty.guess.wrong {
+	background-color: red;
+}
+#game .empty.missed {
+	background-color: yellow;
+}
+#game button.check {
+	font-size: 24px;
+	margin: 10px;
+}
+</style>
+</head>
+<body>
+	<h1>Black Box</h1>
+	<div id="game"></div>
+<script>
+(function (d, w, c, id, u) {
+	let size = 6;
+	let balls = 4;
+	let guesses = 0;
+	let gameOver = false;
+
+	function g(x, y, v) {
+		if (x < 0 || x > size + 1 || y < 0 || y > size + 1) {
+			return u;
+		}
+		if (v === u) {
+			return d.getElementById('_' + y + '_' + x).dataset.val;
+		}
+		if (typeof v === 'number') {
+			d.getElementById('_' + y + '_' + x).classList.add('def');
+			d.getElementById('_' + y + '_' + x).dataset.val = 'def';
+			d.getElementById('_' + y + '_' + x).textContent = v;
+		} else if (v === 'ball') {
+			d.getElementById('_' + y + '_' + x).dataset.val = v;
+		} else {
+			d.getElementById('_' + y + '_' + x).dataset.val = v;
+			d.getElementById('_' + y + '_' + x).classList.add(v);
+		}
+	}
+
+	let num = 0; // The deflection number
+	function shoot(x, y, dr, dc) {
+		// check for immediate hit
+		if (g(x + dr, y + dc) == 'ball') {
+			return g(x, y, 'hit');
+		}
+		// check immediate reflection
+		if (dr == 0) {
+			// horizontal
+			if ((x < size && g(x + 1, y + dc) == 'ball') || (x > 0 && g(x - 1, y + dc) == 'ball')) {
+				return g(x, y, 'ref');
+			}
+		} else {
+			// vertical
+			if ((y < size && g(x + dr, y + 1) == 'ball') || (y > 0 && g(x + dr, y - 1) == 'ball')) {
+				return g(x, y, 'ref');
+			}
+		}
+
+		// move the laser beam
+		let cx = x; // current row
+		let cy = y; // current column
+		while (true) {
+			cx += dr; // current row
+			cy += dc; // current column
+
+			// check for hit
+			if (g(cx, cy) == 'ball') {
+				return g(x, y, 'hit');
+			}
+
+			// check for exit
+			if (cx == 0 || cy == 0 || cx == size + 1 || cy == size + 1) {
+				// check if the port is the same as the starting point
+				if (cx == x && cy == y) {
+					return g(x, y, 'ref');
+				}
+				num++;
+				g(x, y, num);
+				return g(cx, cy, num);
+			}
+
+			// check for reflection by 1 or 2 ball(s)
+			if (dr == 0) {
+				// horizontal
+				if (g(cx + 1, cy) == 'ball' && g(cx - 1, cy) == 'ball') {
+					return g(x, y, 'ref');
+				}
+				if (g(cx + 1, cy) == 'ball') {
+					dr = -1;
+					cy -= dc;
+					dc = 0;
+				} else if (g(cx - 1, cy) == 'ball') {
+					dr = 1;
+					cy -= dc;
+					dc = 0;
+				}
+			} else {
+				// vertical
+				if (g(cx, cy + 1) == 'ball' && g(cx, cy - 1) == 'ball') {
+					return g(x, y, 'ref');
+				}
+				if (g(cx, cy + 1) == 'ball') {
+					cx -= dr;
+					dr = 0;
+					dc = -1;
+				} else if (g(cx, cy - 1) == 'ball') {
+					cx -= dr;
+					dr = 0;
+					dc = 1;
+				}
+			}
+		}
+	}
+
+	(function (s, e) { // create the game board
+		let table = d.createElement('table');
+		let tbody = d.createElement('tbody');
+		let tr, td;
+		for (let i = 0; i < s + 2; i++) {
+			tr = d.createElement('tr');
+			let r = [];
+			for (let j = 0; j < s + 2; j++) {
+				td = d.createElement('td');
+				td.id = '_' + i + '_' + j;
+				if ((i == 0 && j == 0) || (i == 0 && j == s + 1) || (i == s + 1 && j == 0) || (i == s + 1 && j == s + 1)) {
+					td.classList.add('corner');
+				} else if (i == 0 || i == s + 1 || j == 0 || j == s + 1) {
+					td.classList.add('port');
+					td.dataset.val = 'port';
+				} else {
+					td.classList.add('empty');
+					td.dataset.val = 'empty';
+				}
+				tr.appendChild(td);
+			}
+			tbody.appendChild(tr);
+		}
+		table.appendChild(tbody);
+		e.appendChild(table);
+
+		// create button
+		let button = d.createElement('button');
+		button.id = '_check';
+		button.className = 'check';
+		button.textContent = 'Check';
+		button.disabled = true;
+		e.appendChild(button);
+	})(size, d.getElementById(id));
+
+	(function (size, balls) { // add balls
+		for (let i = 0; i < balls; i++) {
+			let x, y;
+			do {
+				x = Math.floor(Math.random() * size) + 1;
+				y = Math.floor(Math.random() * size) + 1;
+			} while (g(x, y) !== 'empty');
+			g(x, y, 'ball');
+		}
+	})(size, balls);
+
+	// shoot from port
+	d.querySelectorAll('#' + id + ' td').forEach(function (e) {
+		e.addEventListener('click', function () {
+			if (gameOver) {
+				c.log('The game is over. Please refresh the page to start a new game.');
+				return;
+			}
+			let id = this.id.split('_');
+			let y = 1 * id[1];
+			let x = 1 * id[2];
+			if (g(x, y) == 'port') {
+				let dx = dy = 0;
+				if (x == 0) {
+					dx = 1;
+				} else if (x == size + 1) {
+					dx = -1;
+				} else if (y == 0) {
+					dy = 1;
+				} else if (y == size + 1) {
+					dy = -1;
+				}
+				shoot(x, y, dx, dy);
+			}
+			if (g(x, y) == 'empty' || g(x, y) == 'ball') {
+				if (d.getElementById('_' + y + '_' + x).classList.contains('guess')) {
+					d.getElementById('_' + y + '_' + x).classList.remove('guess');
+					guesses--;
+				} else {
+					if (guesses >= balls) {
+						c.log('You have already placed ' + guesses + ' guesses. Remove one before adding another.');
+					} else {
+						d.getElementById('_' + y + '_' + x).classList.add('guess');
+						guesses++;
+					}
+					d.getElementById('_check').disabled = (guesses != balls);
+				}
+			}
+		});
+	});
+
+	d.getElementById('_check').addEventListener('click', function() {
+		if (gameOver) {
+			c.log('The game is over. Please refresh the page to start a new game.');
+			return;
+		}
+		gameOver = true;
+		let correct = 0;
+		d.querySelectorAll('#' + id + ' td').forEach(function (e) {
+			let id = e.id.split('_');
+			let y = 1 * id[1];
+			let x = 1 * id[2];
+			if (e.classList.contains('guess')) {
+				if (g(x, y) == 'ball') {
+					e.classList.add('found');
+					correct++;
+				} else {
+					e.classList.add('wrong');
+				}
+			} else if (g(x, y) == 'ball') {
+				e.classList.add('missed');
+			}
+		});
+		if (correct == balls) {
+		c.log('Congratulations! You have found all the balls.');
+	} else {
+		c.log('You have found ' + correct + ' out of ' + balls + ' balls.');
+	}
+});
+
+})(document, window, console, 'game', undefined);
+</script>
+</body>
+</html>
