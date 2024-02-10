@@ -21,6 +21,7 @@ h1 {
 }
 #game table {
 	border-collapse: collapse;
+	user-select: none;
 }
 #game td {
 	font-size: 32px;
@@ -43,22 +44,38 @@ h1 {
 	background-color: #f00;
 	cursor: default;
 }
+#game .port.hit::before {
+	content: 'H';
+	color: #000;
+}
 #game .port.ref {
 	background-color: #ff0;
 	cursor: default;
 }
+#game .port.ref::before {
+	content: 'R';
+	color: #000;
+}
 #game .empty {
 	background-color: #000;
 	border: 1px solid #fff;
+	cursor: pointer;
+}
+#game .empty:hover {
+	background-color: #222;
 }
 #game .empty.guess {
-	background-color: #00f;
+	background-color: green;
 }
 #game .empty.guess.found {
 	background-color: green;
 }
 #game .empty.guess.wrong {
-	background-color: red;
+	background-color: green;
+}
+#game .empty.guess.wrong::before {
+	content: 'X';
+	color: red;
 }
 #game .empty.missed {
 	background-color: yellow;
@@ -73,11 +90,12 @@ h1 {
 	<h1>Black Box</h1>
 	<div id="game"></div>
 <script>
-(function (d, w, c, id, u) {
+(function (d, c, id, u) {
 	let size = 6;
-	let balls = 4;
+	let atoms = 4;
 	let guesses = 0;
 	let gameOver = false;
+	let btnCheck;
 
 	function g(x, y, v) {
 		if (x < 0 || x > size + 1 || y < 0 || y > size + 1) {
@@ -90,7 +108,7 @@ h1 {
 			d.getElementById('_' + y + '_' + x).classList.add('def');
 			d.getElementById('_' + y + '_' + x).dataset.val = 'def';
 			d.getElementById('_' + y + '_' + x).textContent = v;
-		} else if (v === 'ball') {
+		} else if (v === 'atom') {
 			d.getElementById('_' + y + '_' + x).dataset.val = v;
 		} else {
 			d.getElementById('_' + y + '_' + x).dataset.val = v;
@@ -101,18 +119,18 @@ h1 {
 	let num = 0; // The deflection number
 	function shoot(x, y, dr, dc) {
 		// check for immediate hit
-		if (g(x + dr, y + dc) == 'ball') {
+		if (g(x + dr, y + dc) == 'atom') {
 			return g(x, y, 'hit');
 		}
 		// check immediate reflection
 		if (dr == 0) {
 			// horizontal
-			if ((x < size && g(x + 1, y + dc) == 'ball') || (x > 0 && g(x - 1, y + dc) == 'ball')) {
+			if ((x < size && g(x + 1, y + dc) == 'atom') || (x > 0 && g(x - 1, y + dc) == 'atom')) {
 				return g(x, y, 'ref');
 			}
 		} else {
 			// vertical
-			if ((y < size && g(x + dr, y + 1) == 'ball') || (y > 0 && g(x + dr, y - 1) == 'ball')) {
+			if ((y < size && g(x + dr, y + 1) == 'atom') || (y > 0 && g(x + dr, y - 1) == 'atom')) {
 				return g(x, y, 'ref');
 			}
 		}
@@ -125,7 +143,7 @@ h1 {
 			cy += dc; // current column
 
 			// check for hit
-			if (g(cx, cy) == 'ball') {
+			if (g(cx, cy) == 'atom') {
 				return g(x, y, 'hit');
 			}
 
@@ -140,31 +158,31 @@ h1 {
 				return g(cx, cy, num);
 			}
 
-			// check for reflection by 1 or 2 ball(s)
+			// check for reflection by 1 or 2 atom(s)
 			if (dr == 0) {
 				// horizontal
-				if (g(cx + 1, cy) == 'ball' && g(cx - 1, cy) == 'ball') {
+				if (g(cx + 1, cy) == 'atom' && g(cx - 1, cy) == 'atom') {
 					return g(x, y, 'ref');
 				}
-				if (g(cx + 1, cy) == 'ball') {
+				if (g(cx + 1, cy) == 'atom') {
 					dr = -1;
 					cy -= dc;
 					dc = 0;
-				} else if (g(cx - 1, cy) == 'ball') {
+				} else if (g(cx - 1, cy) == 'atom') {
 					dr = 1;
 					cy -= dc;
 					dc = 0;
 				}
 			} else {
 				// vertical
-				if (g(cx, cy + 1) == 'ball' && g(cx, cy - 1) == 'ball') {
+				if (g(cx, cy + 1) == 'atom' && g(cx, cy - 1) == 'atom') {
 					return g(x, y, 'ref');
 				}
-				if (g(cx, cy + 1) == 'ball') {
+				if (g(cx, cy + 1) == 'atom') {
 					cx -= dr;
 					dr = 0;
 					dc = -1;
-				} else if (g(cx, cy - 1) == 'ball') {
+				} else if (g(cx, cy - 1) == 'atom') {
 					cx -= dr;
 					dr = 0;
 					dc = 1;
@@ -200,27 +218,27 @@ h1 {
 		e.appendChild(table);
 
 		// create button
-		let button = d.createElement('button');
-		button.id = '_check';
-		button.className = 'check';
-		button.textContent = 'Check';
-		button.disabled = true;
-		e.appendChild(button);
-	})(size, d.getElementById(id));
+		btnCheck = d.createElement('button');
+		btnCheck.id = '_check';
+		btnCheck.className = 'check';
+		btnCheck.textContent = atoms + ' atoms left';
+		btnCheck.disabled = true;
+		e.appendChild(btnCheck);
+	})(size, d.querySelector(id));
 
-	(function (size, balls) { // add balls
-		for (let i = 0; i < balls; i++) {
+	(function (size, atoms) { // add atoms
+		for (let i = 0; i < atoms; i++) {
 			let x, y;
 			do {
 				x = Math.floor(Math.random() * size) + 1;
 				y = Math.floor(Math.random() * size) + 1;
 			} while (g(x, y) !== 'empty');
-			g(x, y, 'ball');
+			g(x, y, 'atom');
 		}
-	})(size, balls);
+	})(size, atoms);
 
 	// shoot from port
-	d.querySelectorAll('#' + id + ' td').forEach(function (e) {
+	d.querySelectorAll(id + ' td').forEach(function (e) {
 		e.addEventListener('click', function () {
 			if (gameOver) {
 				c.log('The game is over. Please refresh the page to start a new game.');
@@ -242,53 +260,61 @@ h1 {
 				}
 				shoot(x, y, dx, dy);
 			}
-			if (g(x, y) == 'empty' || g(x, y) == 'ball') {
+			if (g(x, y) == 'empty' || g(x, y) == 'atom') {
 				if (d.getElementById('_' + y + '_' + x).classList.contains('guess')) {
 					d.getElementById('_' + y + '_' + x).classList.remove('guess');
 					guesses--;
 				} else {
-					if (guesses >= balls) {
+					if (guesses >= atoms) {
 						c.log('You have already placed ' + guesses + ' guesses. Remove one before adding another.');
 					} else {
 						d.getElementById('_' + y + '_' + x).classList.add('guess');
 						guesses++;
 					}
-					d.getElementById('_check').disabled = (guesses != balls);
+				}
+				if (guesses == atoms) {
+					c.log('All guesses have been placed. Click the "Check" button to see the result.');
+					btnCheck.textContent = 'Check';
+					btnCheck.disabled = false;
+
+				} else {
+					btnCheck.textContent = (atoms - guesses) + ' atom' + (atoms - guesses > 1 ? 's' : '') + ' left';
+					btnCheck.disabled = true;
 				}
 			}
 		});
 	});
 
-	d.getElementById('_check').addEventListener('click', function() {
+	btnCheck.addEventListener('click', function() {
 		if (gameOver) {
 			c.log('The game is over. Please refresh the page to start a new game.');
 			return;
 		}
 		gameOver = true;
+		btnCheck.disabled = true;
 		let correct = 0;
-		d.querySelectorAll('#' + id + ' td').forEach(function (e) {
+		d.querySelectorAll(id + ' td').forEach(function (e) {
 			let id = e.id.split('_');
 			let y = 1 * id[1];
 			let x = 1 * id[2];
 			if (e.classList.contains('guess')) {
-				if (g(x, y) == 'ball') {
+				if (g(x, y) == 'atom') {
 					e.classList.add('found');
 					correct++;
 				} else {
 					e.classList.add('wrong');
 				}
-			} else if (g(x, y) == 'ball') {
+			} else if (g(x, y) == 'atom') {
 				e.classList.add('missed');
 			}
 		});
-		if (correct == balls) {
-		c.log('Congratulations! You have found all the balls.');
+		if (correct == atoms) {
+		c.log('Congratulations! You have found all the atoms.');
 	} else {
-		c.log('You have found ' + correct + ' out of ' + balls + ' balls.');
+		c.log('You have found ' + correct + ' out of ' + atoms + ' atoms.');
 	}
 });
-
-})(document, window, console, 'game', undefined);
+})(document, console, '#game', undefined);
 </script>
 </body>
 </html>
