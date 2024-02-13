@@ -14,6 +14,9 @@ body {
 h1 {
 	text-align: center;
 }
+p {
+	text-align: center;
+}
 #game {
 	margin: 20px auto;
 	text-align: center;
@@ -70,6 +73,10 @@ h1 {
 #game .empty.guess.found {
 	background-color: green;
 }
+#game .empty.guess.found::before {
+	content: 'O';
+	color: #fff;
+}
 #game .empty.guess.wrong {
 	background-color: green;
 }
@@ -88,14 +95,29 @@ h1 {
 </head>
 <body>
 	<h1>Black Box</h1>
+	<p>
+		<button onclick="BlackBox(document, '#game', 6, 3, console)">6x6 and 3 atoms</button>
+		<button onclick="BlackBox(document, '#game', 6, 4, console)">6x6 and 4 atoms</button>
+		<button onclick="BlackBox(document, '#game', 8, 4, console)">8x8 and 4 atoms</button>
+		<button onclick="BlackBox(document, '#game', 8, 6, console)">8x8 and 6 atoms</button>
+		<button onclick="BlackBox(document, '#game', 10, 5, console)">10x10 and 5 atoms</button>
+		<button onclick="BlackBox(document, '#game', 12, 6, console)">12x12 and 6 atoms</button>
+	</p>
 	<div id="game"></div>
 <script>
-(function (d, c, id, u) {
-	let size = 6;
-	let atoms = 4;
+function BlackBox(d, id, size, atoms, c, u) {
 	let guesses = 0;
 	let gameOver = false;
 	let btnCheck;
+
+	if (size < 4 || size > 16) {
+		c.log('The size of the game board must be between 4 and 16.');
+		return;
+	}
+	if (atoms < 1 || atoms > size) {
+		c.log('The number of atoms must be between 1 and ' + size + '.');
+		return;
+	}
 
 	function g(x, y, v) {
 		if (x < 0 || x > size + 1 || y < 0 || y > size + 1) {
@@ -192,6 +214,9 @@ h1 {
 	}
 
 	(function (s, e) { // create the game board
+		// clear everything in the game area
+		e.innerHTML = '';
+
 		let table = d.createElement('table');
 		let tbody = d.createElement('tbody');
 		let tr, td;
@@ -287,8 +312,8 @@ h1 {
 
 	btnCheck.addEventListener('click', function() {
 		if (gameOver) {
-			c.log('The game is over. Please refresh the page to start a new game.');
-			return;
+			c.log('Starting a new game.');
+			return BlackBox(d, id, c, u);
 		}
 		gameOver = true;
 		btnCheck.disabled = true;
@@ -309,12 +334,15 @@ h1 {
 			}
 		});
 		if (correct == atoms) {
-		c.log('Congratulations! You have found all the atoms.');
-	} else {
-		c.log('You have found ' + correct + ' out of ' + atoms + ' atoms.');
-	}
-});
-})(document, console, '#game', undefined);
+			c.log('Congratulations! You have found all the atoms.');
+		} else {
+			c.log('You have found ' + correct + ' out of ' + atoms + ' atoms.');
+		}
+		btnCheck.textContent = 'New Game';
+		btnCheck.disabled = false;
+	});
+};
+BlackBox(document, '#game', 6, 4, console, undefined);
 </script>
 </body>
 </html>
