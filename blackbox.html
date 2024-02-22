@@ -313,7 +313,7 @@ function BlackBox(d, id, size, atoms, c, u) {
 	btnCheck.addEventListener('click', function() {
 		if (gameOver) {
 			c.log('Starting a new game.');
-			return BlackBox(d, id, c, u);
+			return BlackBox(d, id, size, atoms, c, u);
 		}
 		gameOver = true;
 		btnCheck.disabled = true;
