@@ -91,6 +91,9 @@ p {
 	font-size: 24px;
 	margin: 10px;
 }
+#game .score {
+	font-size: 24px;
+}
 </style>
 </head>
 <body>
@@ -107,6 +110,7 @@ p {
 <script>
 function BlackBox(d, id, size, atoms, c, u) {
 	let guesses = 0;
+	let score = 0;
 	let gameOver = false;
 	let btnCheck;
 
@@ -130,12 +134,22 @@ function BlackBox(d, id, size, atoms, c, u) {
 			d.getElementById('_' + y + '_' + x).classList.add('def');
 			d.getElementById('_' + y + '_' + x).dataset.val = 'def';
 			d.getElementById('_' + y + '_' + x).textContent = v;
+			addScore(1);
 		} else if (v === 'atom') {
 			d.getElementById('_' + y + '_' + x).dataset.val = v;
 		} else {
 			d.getElementById('_' + y + '_' + x).dataset.val = v;
 			d.getElementById('_' + y + '_' + x).classList.add(v);
+			addScore(1);
 		}
+	}
+
+	function addScore(inc) {
+		if (!inc) {
+			score = 0;
+		}
+		score += inc;
+		d.getElementById('_score').textContent = 'Score: ' + score;
 	}
 
 	let num = 0; // The deflection number
@@ -213,10 +227,18 @@ function BlackBox(d, id, size, atoms, c, u) {
 		}
 	}
 
-	(function (s, e) { // create the game board
+	(function (s, e) { // Create HTML elements for the game
 		// clear everything in the game area
 		e.innerHTML = '';
 
+		// create score board
+		let score = d.createElement('p');
+		score.id = '_score';
+		score.className = 'score';
+		score.textContent = 'Score: 0';
+		e.appendChild(score);
+
+		// create game board
 		let table = d.createElement('table');
 		let tbody = d.createElement('tbody');
 		let tr, td;
@@ -242,7 +264,7 @@ function BlackBox(d, id, size, atoms, c, u) {
 		table.appendChild(tbody);
 		e.appendChild(table);
 
-		// create button
+		// create a check button
 		btnCheck = d.createElement('button');
 		btnCheck.id = '_check';
 		btnCheck.className = 'check';
